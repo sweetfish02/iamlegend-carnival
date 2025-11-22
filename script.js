@@ -83,28 +83,30 @@ function renderTable() {
             </tr>
     `;
 
-    data.forEach((item, i) => {
-        const nameLabel = item.name === "최종보상" ? "최종보상" : `${item.name}보상`;
+    data.forEach((item, index) => {
         const max = item.count;
         const isFinal = item.name === "최종보상";
+
+        let displayName = item.name;
+        if (item.name.length === 1) displayName = item.name + "보상";
 
         const inputField = isFinal
             ? `<input type="number" value="1" readonly>`
             : `
                 <div class="dropdown-wrapper yellow-cell">
-                    <input type="number" class="remain-input" data-row="${i}" value="${max}" min="0" max="${max}">
-                    <div class="dropdown-btn">▼</div>
-                    <div class="dropdown-list" id="drop-${i}">
+                    <input type="number" class="remain-input" data-index="${index}" value="${max}" min="0" max="${max}">
+                    <div class="dropdown-btn" data-index="${index}">▼</div>
+                    <div class="dropdown-list" id="drop-${index}">
                         ${Array.from({ length: max + 1 }, (_, n) =>
-                            `<div class="dropdown-item" onclick="selectRemain(${i},${n})">${n}</div>`
+                            `<div class="dropdown-item" onclick="selectRemain(${index},${n})">${n}</div>`
                         ).join("")}
                     </div>
                 </div>
             `;
 
         html += `
-            <tr class="reward-row" data-index="${i}">
-                <td>${nameLabel}</td>
+            <tr class="reward-row" data-index="${index}">
+                <td>${displayName}</td>
                 <td class="yellow-cell">${inputField}</td>
                 <td>${item.count}</td>
                 <td>${item.price}</td>
@@ -115,7 +117,8 @@ function renderTable() {
     });
 
     /* 합계행 */
-    const totalCount = data.slice(1).reduce((s,x)=>s+x.count, 0);
+    const totalCount = data.slice(1).reduce((s, x) => s + x.count, 0);
+
     html += `
         <tr id="sum-row">
             <td>A~G보상의 합계</td>
@@ -128,7 +131,6 @@ function renderTable() {
     html += `</table>`;
     area.innerHTML = html;
 
-    /* 입력 이벤트 */
     document.querySelectorAll(".remain-input").forEach(inp => {
         inp.addEventListener("input", () => {
             const max = Number(inp.max);
@@ -140,11 +142,11 @@ function renderTable() {
         });
     });
 
-    /* 드롭다운 버튼 */
-    document.querySelectorAll(".dropdown-btn").forEach((btn, i) => {
+    document.querySelectorAll(".dropdown-btn").forEach(btn => {
         btn.addEventListener("click", () => {
+            const idx = btn.dataset.index;
             closeDropdowns();
-            document.getElementById(`drop-${i}`).style.display = "block";
+            document.getElementById(`drop-${idx}`).style.display = "block";
         });
     });
 
@@ -156,30 +158,32 @@ function closeDropdowns() {
 }
 
 function selectRemain(i, val) {
-    const input = document.querySelector(`input[data-row="${i}"]`);
+    const input = document.querySelector(`input[data-index="${i}"]`);
     input.value = val;
     closeDropdowns();
     calculate();
 }
 
-/* 계산 — 그대로 사용 */
+/* 계산 */
 function calculate() {
     const key = `${selectedTicket}_${selectedBox}`;
     const data = rewardData[key];
 
     let remains = [];
-    document.querySelectorAll(".remain-input").forEach((inp, i) => {
-        remains[i] = Number(inp.value);
+
+    document.querySelectorAll(".remain-input").forEach(inp => {
+        const idx = Number(inp.dataset.index);
+        remains[idx] = Number(inp.value);
     });
 
-    const sumRemain = remains.reduce((s,x)=>s+x, 0);
+    const sumRemain = remains.slice(1).reduce((s, x) => s + x, 0);
     document.getElementById("sum-remain").textContent = sumRemain;
 
     document.querySelectorAll(".reward-row").forEach(row => {
-        const index = Number(row.dataset.index);
-        const item = data[index];
+        const idx = Number(row.dataset.index);
+        const item = data[idx];
 
-        const remain = item.name === "최종보상" ? 1 : remains[index];
+        const remain = item.name === "최종보상" ? 1 : remains[idx];
         const score = item.price * remain;
         const ticket = (score / 30).toFixed(1);
 
@@ -190,7 +194,7 @@ function calculate() {
     renderResult(sumRemain * Number(selectedTicket));
 }
 
-/* 결과표 — 그대로 */
+/* 결과표 */
 function renderResult(required) {
     const area = document.getElementById("result-area");
 
@@ -199,19 +203,21 @@ function renderResult(required) {
     let excludeA = 0;
 
     document.querySelectorAll(".reward-row").forEach(row => {
-        const name = row.children[0].textContent.replace("보상","");
+        const name = row.children[0].textContent.replace("보상", "");
         const t = parseFloat(row.querySelector(".ticket-cell").textContent) || 0;
+
         totals.push(t);
         if (name !== "최종보상") excludeFinal += t;
         if (name !== "최종보상" && name !== "A") excludeA += t;
     });
 
-    const totalReturn = totals.reduce((a,b)=>a+b,0);
+    const totalReturn = totals.reduce((a, b) => a + b, 0);
 
-    function calc(val){
+    function calc(val) {
+        const diff = val - required;
         return {
-            profit: val - required,
-            gem: Math.round((val - required) * 300)
+            profit: diff,
+            gem: Math.ceil(diff * 300)
         };
     }
 
@@ -219,9 +225,8 @@ function renderResult(required) {
     const c2 = calc(excludeFinal);
     const c3 = calc(excludeA);
 
-    const fmt = v => v >= 0 
-        ? `<span class="green">${v}</span>`
-        : `<span class="red">${v}</span>`;
+    const fmt = v =>
+        v >= 0 ? `<span class="green">${v}</span>` : `<span class="red">${v}</span>`;
 
     area.innerHTML = `
     <table>
@@ -269,9 +274,10 @@ function renderImages() {
         area = document.createElement("div");
         area.id = "image-area";
         area.style.textAlign = "right";
-        area.style.marginTop = "-80px";
-        area.style.marginBottom = "20px";
-        document.querySelector(".container").prepend(area);
+        area.style.marginBottom = "10px";
+
+        const tableArea = document.getElementById("table-area");
+        tableArea.parentNode.insertBefore(area, tableArea);
     }
 
     area.innerHTML = images
