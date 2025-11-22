@@ -78,12 +78,13 @@ function renderTable() {
                 <th>남은 개수(현재 수량 직접입력)</th>
                 <th>전체 개수</th>
                 <th>단가</th>
-                <th>점수</th>
+                <th>점수(남은 개수×단가)</th>
                 <th>티켓화</th>
             </tr>
     `;
 
-    data.forEach((item, index) => {
+    data.forEach((item, i) => {
+        const nameLabel = item.name === "최종보상" ? "최종보상" : `${item.name}보상`;
         const max = item.count;
         const isFinal = item.name === "최종보상";
 
@@ -91,19 +92,19 @@ function renderTable() {
             ? `<input type="number" value="1" readonly>`
             : `
                 <div class="dropdown-wrapper yellow-cell">
-                    <input type="number" class="remain-input" data-index="${index}" value="${max}" min="0" max="${max}">
-                    <div class="dropdown-btn" data-index="${index}">▼</div>
-                    <div class="dropdown-list" id="drop-${index}">
+                    <input type="number" class="remain-input" data-row="${i}" value="${max}" min="0" max="${max}">
+                    <div class="dropdown-btn">▼</div>
+                    <div class="dropdown-list" id="drop-${i}">
                         ${Array.from({ length: max + 1 }, (_, n) =>
-                            `<div class="dropdown-item" onclick="selectRemain(${index},${n})">${n}</div>`
+                            `<div class="dropdown-item" onclick="selectRemain(${i},${n})">${n}</div>`
                         ).join("")}
                     </div>
                 </div>
             `;
 
         html += `
-            <tr class="reward-row" data-index="${index}">
-                <td>${item.name}</td>
+            <tr class="reward-row" data-index="${i}">
+                <td>${nameLabel}</td>
                 <td class="yellow-cell">${inputField}</td>
                 <td>${item.count}</td>
                 <td>${item.price}</td>
@@ -114,11 +115,10 @@ function renderTable() {
     });
 
     /* 합계행 */
-    const totalCount = data.slice(1).reduce((s, x) => s + x.count, 0);
-
+    const totalCount = data.slice(1).reduce((s,x)=>s+x.count, 0);
     html += `
         <tr id="sum-row">
-            <td>A~G 의 합계</td>
+            <td>A~G보상의 합계</td>
             <td id="sum-remain" class="yellow-cell"></td>
             <td>${totalCount}</td>
             <td></td><td></td><td></td>
@@ -128,7 +128,7 @@ function renderTable() {
     html += `</table>`;
     area.innerHTML = html;
 
-    /* 입력 숫자 이벤트 */
+    /* 입력 이벤트 */
     document.querySelectorAll(".remain-input").forEach(inp => {
         inp.addEventListener("input", () => {
             const max = Number(inp.max);
@@ -140,12 +140,11 @@ function renderTable() {
         });
     });
 
-    /* 드롭다운 버튼 이벤트 — FIXED */
-    document.querySelectorAll(".dropdown-btn").forEach(btn => {
+    /* 드롭다운 버튼 */
+    document.querySelectorAll(".dropdown-btn").forEach((btn, i) => {
         btn.addEventListener("click", () => {
-            const idx = btn.dataset.index;
             closeDropdowns();
-            document.getElementById(`drop-${idx}`).style.display = "block";
+            document.getElementById(`drop-${i}`).style.display = "block";
         });
     });
 
@@ -157,34 +156,30 @@ function closeDropdowns() {
 }
 
 function selectRemain(i, val) {
-    const input = document.querySelector(`input[data-index="${i}"]`);
+    const input = document.querySelector(`input[data-row="${i}"]`);
     input.value = val;
     closeDropdowns();
     calculate();
 }
 
-/* 계산 */
+/* 계산 — 그대로 사용 */
 function calculate() {
     const key = `${selectedTicket}_${selectedBox}`;
     const data = rewardData[key];
 
     let remains = [];
-
-    document.querySelectorAll(".remain-input").forEach(inp => {
-        const idx = Number(inp.dataset.index);
-        remains[idx] = Number(inp.value);
+    document.querySelectorAll(".remain-input").forEach((inp, i) => {
+        remains[i] = Number(inp.value);
     });
 
-    /* 합계 */
-    const sumRemain = remains.slice(1).reduce((s, x) => s + x, 0);
+    const sumRemain = remains.reduce((s,x)=>s+x, 0);
     document.getElementById("sum-remain").textContent = sumRemain;
 
-    /* 점수 / 티켓화 */
     document.querySelectorAll(".reward-row").forEach(row => {
-        const idx = Number(row.dataset.index);
-        const item = data[idx];
+        const index = Number(row.dataset.index);
+        const item = data[index];
 
-        const remain = item.name === "최종보상" ? 1 : remains[idx];
+        const remain = item.name === "최종보상" ? 1 : remains[index];
         const score = item.price * remain;
         const ticket = (score / 30).toFixed(1);
 
@@ -195,7 +190,7 @@ function calculate() {
     renderResult(sumRemain * Number(selectedTicket));
 }
 
-/* 결과표 */
+/* 결과표 — 그대로 */
 function renderResult(required) {
     const area = document.getElementById("result-area");
 
@@ -204,20 +199,19 @@ function renderResult(required) {
     let excludeA = 0;
 
     document.querySelectorAll(".reward-row").forEach(row => {
-        const name = row.children[0].textContent;
+        const name = row.children[0].textContent.replace("보상","");
         const t = parseFloat(row.querySelector(".ticket-cell").textContent) || 0;
         totals.push(t);
         if (name !== "최종보상") excludeFinal += t;
         if (name !== "최종보상" && name !== "A") excludeA += t;
     });
 
-    const totalReturn = totals.reduce((a, b) => a + b, 0);
+    const totalReturn = totals.reduce((a,b)=>a+b,0);
 
-    function calc(val) {
-        const diff = val - required;
+    function calc(val){
         return {
-            profit: diff,
-            gem: Math.ceil(diff * 300)
+            profit: val - required,
+            gem: Math.round((val - required) * 300)
         };
     }
 
@@ -225,8 +219,9 @@ function renderResult(required) {
     const c2 = calc(excludeFinal);
     const c3 = calc(excludeA);
 
-    const fmt = v =>
-        v >= 0 ? `<span class="green">${v}</span>` : `<span class="red">${v}</span>`;
+    const fmt = v => v >= 0 
+        ? `<span class="green">${v}</span>`
+        : `<span class="red">${v}</span>`;
 
     area.innerHTML = `
     <table>
@@ -269,24 +264,17 @@ function renderImages() {
     const key = `${selectedTicket}_${selectedBox}`;
     const images = imageMap[key];
 
-    // 이미지 영역이 없으면 새로 생성
     let area = document.getElementById("image-area");
     if (!area) {
         area = document.createElement("div");
         area.id = "image-area";
-
-        // 오른쪽 정렬 + 적당한 하단 여백
         area.style.textAlign = "right";
-        area.style.marginBottom = "10px";
-
-        // ▼ 여기 중요! table-area 바로 앞에 삽입
-        const tableArea = document.getElementById("table-area");
-        tableArea.parentNode.insertBefore(area, tableArea);
+        area.style.marginTop = "-80px";
+        area.style.marginBottom = "20px";
+        document.querySelector(".container").prepend(area);
     }
 
-    // 이미지 표시
     area.innerHTML = images
         ? images.map(src => `<img src="${src}" style="width:90px; margin-left:8px;">`).join("")
         : "";
 }
-
