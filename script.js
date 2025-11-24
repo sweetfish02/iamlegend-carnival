@@ -12,7 +12,10 @@ const imageMap = {
 let selectedTicket = null;
 let selectedBox = null;
 
-/* 버튼 */
+
+/* ===============================
+   버튼 선택 이벤트
+=============================== */
 document.querySelectorAll("#ticketButtons .select-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         selectedTicket = btn.dataset.ticket;
@@ -32,7 +35,10 @@ document.querySelectorAll("#boxButtons .select-btn").forEach(btn => {
     });
 });
 
-/* 버튼 활성화 */
+
+/* ===============================
+   버튼 활성/비활성 표시
+=============================== */
 function updateButtonState() {
     const ticketBtns = document.querySelectorAll("#ticketButtons .select-btn");
     const boxBtns = document.querySelectorAll("#boxButtons .select-btn");
@@ -60,7 +66,10 @@ function updateButtonState() {
     }
 }
 
-/* 테이블 생성 */
+
+/* ===============================
+   중간표 생성
+=============================== */
 function renderTable() {
     const key = `${selectedTicket}_${selectedBox}`;
     const data = rewardData[key];
@@ -84,17 +93,19 @@ function renderTable() {
     `;
 
     data.forEach((item, index) => {
-        const max = item.count;
-        const isFinal = item.name === "최종보상";
 
         let displayName = item.name;
         if (item.name.length === 1) displayName = item.name + "보상";
 
+        const max = item.count;
+        const isFinal = item.name === "최종보상";
+
         const inputField = isFinal
-            ? `<input type="number" value="1" readonly>`
+            ? `<input type="number" value="1" readonly style="text-align:center;">`
             : `
                 <div class="dropdown-wrapper yellow-cell">
-                    <input type="number" class="remain-input" data-index="${index}" value="${max}" min="0" max="${max}">
+                    <input type="number" class="remain-input" data-index="${index}" value="${max}" 
+                           min="0" max="${max}" inputmode="numeric">
                     <div class="dropdown-btn" data-index="${index}">▼</div>
                     <div class="dropdown-list" id="drop-${index}">
                         ${Array.from({ length: max + 1 }, (_, n) =>
@@ -116,7 +127,6 @@ function renderTable() {
         `;
     });
 
-    /* 합계행 */
     const totalCount = data.slice(1).reduce((s, x) => s + x.count, 0);
 
     html += `
@@ -126,17 +136,19 @@ function renderTable() {
             <td>${totalCount}</td>
             <td></td><td></td><td></td>
         </tr>
+        </table>
     `;
 
-    html += `</table>`;
     area.innerHTML = html;
 
     document.querySelectorAll(".remain-input").forEach(inp => {
         inp.addEventListener("input", () => {
             const max = Number(inp.max);
             let v = Number(inp.value);
+
             if (v < 0) v = 0;
             if (v > max) v = max;
+
             inp.value = v;
             calculate();
         });
@@ -153,6 +165,10 @@ function renderTable() {
     calculate();
 }
 
+
+/* ===============================
+   드롭다운
+=============================== */
 function closeDropdowns() {
     document.querySelectorAll(".dropdown-list").forEach(d => d.style.display = "none");
 }
@@ -164,7 +180,10 @@ function selectRemain(i, val) {
     calculate();
 }
 
-/* 계산 */
+
+/* ===============================
+   계산
+=============================== */
 function calculate() {
     const key = `${selectedTicket}_${selectedBox}`;
     const data = rewardData[key];
@@ -194,24 +213,19 @@ function calculate() {
     renderResult(sumRemain * Number(selectedTicket));
 }
 
-/* 결과표 */
+
+/* ===============================
+   결과표 생성 (정확하게 수정된 버전)
+=============================== */
 function renderResult(required) {
     const area = document.getElementById("result-area");
 
-    let totals = [];
-    let excludeFinal = 0;
-    let excludeA = 0;
+    const ticketCells = Array.from(document.querySelectorAll(".reward-row .ticket-cell"))
+        .map(c => parseFloat(c.textContent) || 0);
 
-    document.querySelectorAll(".reward-row").forEach(row => {
-        const name = row.children[0].textContent.replace("보상", "");
-        const t = parseFloat(row.querySelector(".ticket-cell").textContent) || 0;
-
-        totals.push(t);
-        if (name !== "최종보상") excludeFinal += t;
-        if (name !== "최종보상" && name !== "A") excludeA += t;
-    });
-
-    const totalReturn = totals.reduce((a, b) => a + b, 0);
+    const totalReturn = ticketCells.reduce((a, b) => a + b, 0);
+    const excludeFinal = ticketCells.slice(1).reduce((a, b) => a + b, 0);
+    const excludeA = ticketCells.slice(2).reduce((a, b) => a + b, 0);
 
     function calc(val) {
         const diff = val - required;
@@ -229,33 +243,33 @@ function renderResult(required) {
         v >= 0 ? `<span class="green">${v}</span>` : `<span class="red">${v}</span>`;
 
     area.innerHTML = `
-    <table>
-        <tr>
-            <th>구분</th>
-            <th>전부 반환</th>
-            <th>최종 제외</th>
-            <th>최종 & A 제외</th>
-        </tr>
-        <tr>
-            <td class="purple">돌려받는 티켓</td>
-            <td>${totalReturn.toFixed(1)}</td>
-            <td>${excludeFinal.toFixed(1)}</td>
-            <td>${excludeA.toFixed(1)}</td>
-        </tr>
-        <tr>
-            <td>티켓 손익</td>
-            <td>${fmt(c1.profit.toFixed(1))}</td>
-            <td>${fmt(c2.profit.toFixed(1))}</td>
-            <td>${fmt(c3.profit.toFixed(1))}</td>
-        </tr>
-        <tr>
-            <td>보석 가치</td>
-            <td>${fmt(c1.gem)}</td>
-            <td>${fmt(c2.gem)}</td>
-            <td>${fmt(c3.gem)}</td>
-        </tr>
-    </table>
-    `;
+<table>
+    <tr>
+        <th>구분</th>
+        <th>전부 반환</th>
+        <th>최종 제외</th>
+        <th>최종 & A 제외</th>
+    </tr>
+    <tr>
+        <td class="purple">돌려받는 티켓</td>
+        <td>${totalReturn.toFixed(1)}</td>
+        <td>${excludeFinal.toFixed(1)}</td>
+        <td>${excludeA.toFixed(1)}</td>
+    </tr>
+    <tr>
+        <td>티켓 손익</td>
+        <td>${fmt(c1.profit.toFixed(1))}</td>
+        <td>${fmt(c2.profit.toFixed(1))}</td>
+        <td>${fmt(c3.profit.toFixed(1))}</td>
+    </tr>
+    <tr>
+        <td>보석 가치</td>
+        <td class="result-gem">${fmt(c1.gem)}</td>
+        <td class="result-gem">${fmt(c2.gem)}</td>
+        <td class="result-gem">${fmt(c3.gem)}</td>
+    </tr>
+</table>
+`;
 
     document.getElementById("required-box").innerHTML = `
         <div style="text-align:center; margin:15px 0; font-size:18px; font-weight:bold;">
@@ -264,7 +278,10 @@ function renderResult(required) {
     `;
 }
 
-/* 이미지 */
+
+/* ===============================
+   이미지 출력
+=============================== */
 function renderImages() {
     const key = `${selectedTicket}_${selectedBox}`;
     const images = imageMap[key];
