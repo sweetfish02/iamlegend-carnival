@@ -287,3 +287,13 @@ input[type=number]::-webkit-outer-spin-button {
     max-width: 100%;
     height: auto;
 }
+/* 고급옵션 표 열 비율 조정 */
+.adv-table td:first-child,
+.adv-table th:first-child {
+    width: 30%;
+}
+
+.adv-table td:last-child,
+.adv-table th:last-child {
+    width: 70%;
+}
