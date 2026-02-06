@@ -47,7 +47,19 @@ const rewardData = {
         { name: "F", count: 30, price: 18 },
         { name: "G", count: 40, price: 12 }
     ],
-  
+
+"3_160_img": [
+    { name: "최종보상", count: 1, price: 1080 },
+    { name: "A", count: 1, price: 540 },
+    { name: "B", count: 2, price: 540 },
+    { name: "C", count: 5, price: 216 },
+    { name: "D", count: 12, price: 90 },
+    { name: "E", count: 40, price: 27 },
+    { name: "F", count: 40, price: 27 },
+    { name: "G", count: 60, price: 18 }
+],
+
+   
     "3_160": [
         { name: "최종보상", count: 1, price: 540 },
         { name: "A", count: 2, price: 540 },
