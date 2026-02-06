@@ -6,6 +6,7 @@ const imageMap = {
     "2_120": ["images/2_120_1.png"],
     "2_240": ["images/2_240_1.png", "images/2_240_2.png"],
     "3_80": ["images/3_80_1.png", "images/3_80_2.png"],
+    "3_160_img": ["images/3_160_img_1.png"],
     "3_160": ["images/3_160_1.png"]
 };
 
