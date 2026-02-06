@@ -235,7 +235,7 @@ input[type="number"][readonly] {
 .adv-label-cell {
     background: #e3f2fd;
     font-weight: 600;
-    text-align: left;
+    text-align: center;
 }
 
 .adv-input-cell {
