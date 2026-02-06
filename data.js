@@ -50,7 +50,7 @@ const rewardData = {
 
 "3_160_img": [
     { name: "최종보상", count: 1, price: 1080 },
-    { name: "A", count: 1, price: 540 },
+    { name: "A", count: 1, price: 1080 },
     { name: "B", count: 2, price: 540 },
     { name: "C", count: 5, price: 216 },
     { name: "D", count: 12, price: 90 },
